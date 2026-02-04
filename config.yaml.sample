@@ -10,3 +10,10 @@ openstack:
   allow_write: false
   ca_cert: ./tls-ca-bundle.pem
   insecure: false
+
+mcp_transport_security:
+    enable_dns_rebinding_protection: false
+    allowed_hosts:
+      - "*:*"
+    allowed_origins:
+      - "http://*:*"

@@ -12,6 +12,7 @@ import os
 import yaml
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import Field
 from pydantic_settings import BaseSettings
 import uvicorn
@@ -33,6 +34,12 @@ class AppContext:
     osc: osc.LifecycleConfig
 
 
+class TransportSecuritySettings(BaseSettings):
+    enable_dns_rebinding_protection: bool = Field(default=False, description="Enable DNS rebinding protection")
+    allowed_hosts: list[str] = Field(default=["*:*"], description="Allowed hosts")
+    allowed_origins: list[str] = Field(default=["http://*:*"], description="Allowed origins")
+
+
 class Settings(BaseSettings):
     ip: str = Field(default="0.0.0.0", description="IP address to bind to")
     port: int = Field(default=8080, description="Port to bind to")
@@ -41,6 +48,7 @@ class Settings(BaseSettings):
     log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [%(request_id)s|%(client_id)s] %(name)s %(message)s", description="Log format")
     unicorn_log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [-|-] %(name)s %(message)s", description="Unicorn log format")
     openstack: osc.Settings = Field(default=osc.Settings(), description="OpenStack settings")
+    mcp_transport_security: TransportSecuritySettings = Field(default=TransportSecuritySettings(), description="Transport security settings")
 
 
 def load_config():
@@ -77,7 +85,16 @@ def initialize(config: Settings) -> FastMCP:
 
     # Use stateless_http=True to support multiple workers, otherwise a
     # session can go to a different worker and it will fail.
-    mcp = FastMCP("rhoso-tools", lifespan=app_lifespan, stateless_http=True)
+    mcp = FastMCP(
+        "rhoso-tools",
+        lifespan=app_lifespan,
+        stateless_http=True,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=config.mcp_transport_security.enable_dns_rebinding_protection,
+            allowed_hosts=config.mcp_transport_security.allowed_hosts,
+            allowed_origins=config.mcp_transport_security.allowed_origins,
+        ),
+    )
 
     osc.LifecycleConfig.add_tools(mcp)
     return mcp
