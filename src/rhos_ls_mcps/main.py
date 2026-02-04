@@ -15,6 +15,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import Field
 from pydantic_settings import BaseSettings
+from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
 from rhos_ls_mcps import osc
@@ -104,7 +105,18 @@ def create_app():
     settings = load_config()
     mcp = initialize(settings)
     mcp_app = mcp.streamable_http_app()
-    return mcp_app
+
+    # Wrap ASGI application with CORS middleware to allow browser-based clients to work
+    app = CORSMiddleware(
+        mcp_app,
+        allow_origins=["*"],
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=["*"],
+        expose_headers=["Mcp-Session-Id"],
+    )
+
+    # return mcp_app
+    return app
 
 
 def main():

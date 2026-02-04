@@ -23,7 +23,6 @@
 - Support multile openstack deployments:
   * add parameter to the tool command
   * use elicitation to choose the deployment when not specified
-- Return the UUID in the MCP server so that web tools can use it
 - Figure out how to not reload commands and plugins everytime
 
 ### Bug fixes
