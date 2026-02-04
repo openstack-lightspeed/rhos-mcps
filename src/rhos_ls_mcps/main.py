@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     port: int = Field(default=8080, description="Port to bind to")
     debug: bool = Field(default=False, description="Enable debug logging")
     workers: int = Field(default=10, description="Number of workers to use")
+    log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m %(name)s %(message)s", description="Log format")
     openstack: osc.Settings = Field(default=osc.Settings(), description="OpenStack settings")
 
 
@@ -73,7 +74,7 @@ def initialize(config: Settings) -> FastMCP:
     log_level = logging.DEBUG if config.debug else logging.INFO
     logging.basicConfig(
         level=log_level,
-        format="\033[32m%(levelname)s:\033[0m %(message)s",
+        format=config.log_format,
         stream=sys.stderr,
         force=True,
     )
@@ -98,7 +99,12 @@ def create_app():
 def main():
     settings = load_config()
 
+    # Configure uvicorn logging
     uvicorn_log_level = "debug" if settings.debug else "info"
+    log_config = uvicorn.config.LOGGING_CONFIG
+    log_config["formatters"]["access"]["fmt"] = settings.log_format
+    log_config["formatters"]["default"]["fmt"] = settings.log_format
+
     # Pass string instead of an instance to support multiple workers.
     # Pass the factory=True argument to use a function (create_app) instead of a variable.
     uvicorn.run(
@@ -110,6 +116,7 @@ def main():
         timeout_keep_alive=5,
         access_log=False,
         factory=True,
+        log_config=log_config,
     )
 
 

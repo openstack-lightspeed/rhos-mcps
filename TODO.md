@@ -16,6 +16,7 @@
 
 ### Features
 
+- Include UUID for log entries so we can group logs by request
 - Default to TOON format instead of TABLE for results by doing the conversion
   ourselves
 - Return nice error message when LLM is stupid and calls with things like
@@ -23,8 +24,6 @@
 - Support multile openstack deployments:
   * add parameter to the tool command
   * use elicitation to choose the deployment when not specified
-- Include UUID for log entries so we can group logs by request
-- Include python path in logs
 - Return the UUID in the MCP server so that web tools can use it
 - Figure out how to not reload commands and plugins everytime
 
