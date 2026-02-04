@@ -19,15 +19,6 @@ class LifecycleConfigAbstract(ABC):
 
     @staticmethod
     @abstractmethod
-    def add_arg_options(parser: argparse.ArgumentParser) -> None:
-        """Add MCP options to the server's parser.
-
-        Called from main.py:parse_args()
-        """
-        pass
-
-    @staticmethod
-    @abstractmethod
     def add_tools(mcp: FastMCP) -> None:
         """Add the module's MCP tools to the server."""
         # mcp.add_tool(method, name="toolname", title="short description")

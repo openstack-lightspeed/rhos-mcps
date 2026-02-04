@@ -1,0 +1,9 @@
+ip: 0.0.0.0
+port: 8901
+debug: true
+workers: 2
+
+openstack:
+  allow_write: false
+  ca_cert: ./tls-ca-bundle.pem
+  insecure: false

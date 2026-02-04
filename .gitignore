@@ -10,6 +10,9 @@ tls-ca-bundle.pem
 clouds.yaml
 secure.yaml
 
+# Service config file
+config.yaml
+
 # C extensions
 *.so
 

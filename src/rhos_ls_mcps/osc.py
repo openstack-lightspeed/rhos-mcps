@@ -20,7 +20,6 @@
 - https://github.com/openstack/osc-lib/blob/master/osc_lib/shell.py
 """
 
-import argparse
 from dataclasses import dataclass
 from importlib.metadata import entry_points, EntryPoint
 import io
@@ -34,6 +33,8 @@ from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 import openstackclient.shell as osc_shell
 from osc_lib import exceptions as osc_exceptions
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from rhos_ls_mcps import mcp_base
 from rhos_ls_mcps.utils import tool_logger
@@ -41,8 +42,8 @@ from rhos_ls_mcps.utils import tool_logger
 
 ACCEPT_COMMANDS: set[str] = {
         # These are just verbs
-        "get", "show", "list", "history", "alarm-history show", "alarm-history search", 
-        "capabilities list", "alarm show", "alarm quota show", "alarm state get", 
+        "get", "show", "list", "history", "alarm-history show", "alarm-history search",
+        "capabilities list", "alarm show", "alarm quota show", "alarm state get",
         "search", "benchmark metric show", "alarming capabilities list", "simulate",
         "info", "collect", "benchmark measures show", "validate", "ping", "top",
         "stats", "alarm list", "contains", "homedoc", "query", "measures aggregation",
@@ -64,9 +65,15 @@ logger = logging.getLogger(__name__)
 ##########
 # METHODS AND CLASSES CALLED FROM main.py
 
+class Settings(BaseSettings):
+    allow_write: bool = Field(default=False, description="Allow write operations (default: false)")
+    ca_cert: Optional[str] = Field(default=None, description="CA certificate bundle file (Env: OS_CACERT)")
+    insecure: bool = Field(default=False, description="Allow insecure SSL connections (Env: OS_INSECURE)")
+
+
 class LifecycleConfig(mcp_base.LifecycleConfigAbstract):
     """MCP server lifecycle configuration for the OpenStack MCP tool.
-    
+
     Used in main.py:AppContext.osc and received by all the tools that have the
     `ctx: Context` parameter. Instance is accessible through
     `ctx.request_context.lifespan_context.osc`.
@@ -75,50 +82,21 @@ class LifecycleConfig(mcp_base.LifecycleConfigAbstract):
     allowed_commands: tuple[str]
     params: list[str]
 
-    def __init__(self, args: argparse.Namespace) -> None:
+    def __init__(self, config) -> None:
         """Initialize the OpenStack MCP tool.
 
         This sets the global variables that tool calls will need.
 
         Called from main.py:initialize()
         """
-        osc_params = ["--os-cacert", args.osc_ca_cert] if args.osc_ca_cert else []
-        if args.osc_insecure:
+        osc_config = config.openstack
+        osc_params = ["--os-cacert", osc_config.ca_cert] if osc_config.ca_cert else []
+        if osc_config.insecure:
             osc_params.append("--insecure")
 
-        self.allow_write = args.osc_allow_write
+        self.allow_write = osc_config.allow_write
         self.allowed_commands = osp_list_commands(ACCEPT_COMMANDS)[0]
         self.params = osc_params
-
-    @staticmethod
-    def add_arg_options(parser: argparse.ArgumentParser) -> None:
-        """Add OpenStack MCP options to the server's parser.
-
-        Called from main.py:parse_args()
-        """
-        osc_group = parser.add_argument_group('openstack', 'openstack client MCP options')
-        osc_group.add_argument(
-            "-w",
-            "--osc-allow-write",
-            required=False,
-            default=False,
-            action="store_true",
-            help="Allow write operations (default: block)",
-        )
-        osc_group.add_argument(
-            "-c",
-            "--osc-ca-cert",
-            required=False,
-            default=None,
-            help="CA certificate bundle file (Env: OS_CACERT)",
-        )
-        osc_group.add_argument(
-            "--osc-insecure",
-            required=False,
-            default=False,
-            action="store_true",
-            help="Allow insecure SSL connections (Env: OS_INSECURE)",
-        )
 
     @staticmethod
     def add_tools(mcp: FastMCP) -> None:
@@ -168,7 +146,7 @@ def openstack_cli_mcp_tool(command_str: str, ctx: Context) -> str:
     - Table: nothing
 
     Args:
-       command_str: String with the openstack command to run. May start with "openstack" 
+       command_str: String with the openstack command to run. May start with "openstack"
                     or not, but it will *NEVER* be cinder, nova, glance, etc.
     """
     # TODO: Actually implement our own shell so we don't reload plugins and commands every time?
@@ -210,7 +188,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
     """OpenStack shell implementation without a subprocess shell.
 
     Necessary because the osc shell doesn't accept stdin, stdout, and stderr as arguments,
-    as it assumes it's always called from a terminal.  We need to capture the command's 
+    as it assumes it's always called from a terminal.  We need to capture the command's
     stdout and stderr to return them to the MCP client.
 
     Also ensures that plugins and commands are loaded only once.
@@ -241,7 +219,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
                                            osc_config=osc_config)
         deferred_help = True if deferred_help is None else deferred_help
 
-        ########## 
+        ##########
         # TEMPORARY WORKAROUND FOR osc-lib BUG
         #
         # TODO: Submit a fix for osc-lib so it passes stdin and stdout to cliff's app init method.
@@ -437,7 +415,7 @@ def split_command(command_str: str, ctx: Context) -> list[str]:
 
 def osp_list_commands(verbs: set[str]) -> tuple[list[str], list[str]]:
     """List commands that match and don't match the given verbs"""
-    # Use sets because some commands exist in multiple groups 
+    # Use sets because some commands exist in multiple groups
     # eg: dataprocessing_cluster_show exists in openstack.data_processing.v1 and
     # openstack.data_processing.v2
     result_commands: set[str] = set[str]()
@@ -463,7 +441,7 @@ def osp_list_commands(verbs: set[str]) -> tuple[list[str], list[str]]:
 # that don't match our allowed commands with a custom EntryPoint class that
 # rejects the request.
 #
-# This way we can differentiate between blocked and wrong commands efficiently 
+# This way we can differentiate between blocked and wrong commands efficiently
 # since we don't have to check the command on each request.
 
 class RejectedEntryPoint(EntryPoint):
