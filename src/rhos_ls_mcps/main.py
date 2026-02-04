@@ -9,7 +9,6 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import logging
 import os
-import sys
 import yaml
 
 from mcp.server.fastmcp import FastMCP
@@ -18,6 +17,7 @@ from pydantic_settings import BaseSettings
 import uvicorn
 
 from rhos_ls_mcps import osc
+from rhos_ls_mcps import utils
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,8 @@ class Settings(BaseSettings):
     port: int = Field(default=8080, description="Port to bind to")
     debug: bool = Field(default=False, description="Enable debug logging")
     workers: int = Field(default=10, description="Number of workers to use")
-    log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m %(name)s %(message)s", description="Log format")
+    log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [%(request_id)s|%(client_id)s] %(name)s %(message)s", description="Log format")
+    unicorn_log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [-|-] %(name)s %(message)s", description="Unicorn log format")
     openstack: osc.Settings = Field(default=osc.Settings(), description="OpenStack settings")
 
 
@@ -71,14 +72,7 @@ def initialize(config: Settings) -> FastMCP:
         logger.debug("Application lifespan initialized")
         yield app_context
 
-    log_level = logging.DEBUG if config.debug else logging.INFO
-    logging.basicConfig(
-        level=log_level,
-        format=config.log_format,
-        stream=sys.stderr,
-        force=True,
-    )
-    logger.setLevel(log_level)
+    utils.init_logging(config)
     logger.info("Initializing RHOSO MCP server")
 
     # Use stateless_http=True to support multiple workers, otherwise a
@@ -102,8 +96,8 @@ def main():
     # Configure uvicorn logging
     uvicorn_log_level = "debug" if settings.debug else "info"
     log_config = uvicorn.config.LOGGING_CONFIG
-    log_config["formatters"]["access"]["fmt"] = settings.log_format
-    log_config["formatters"]["default"]["fmt"] = settings.log_format
+    log_config["formatters"]["access"]["fmt"] = settings.unicorn_log_format
+    log_config["formatters"]["default"]["fmt"] = settings.unicorn_log_format
 
     # Pass string instead of an instance to support multiple workers.
     # Pass the factory=True argument to use a function (create_app) instead of a variable.

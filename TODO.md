@@ -16,7 +16,6 @@
 
 ### Features
 
-- Include UUID for log entries so we can group logs by request
 - Default to TOON format instead of TABLE for results by doing the conversion
   ourselves
 - Return nice error message when LLM is stupid and calls with things like
