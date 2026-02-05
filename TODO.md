@@ -32,19 +32,6 @@
   `DEBUG: Running openstack_cli_mcp_tool with args: () and kwargs: {'command_str': 'oc exec -t openstackclient -- openstack volume list', 'ctx': Context()}`
   Maybe we should add something to the tool's description to hint that `oc` is
   not supported?
-- Fix the problem that stdout and stderr are empty when there is no openstack
-  to connect to:
-  We see these in the server's stdout, but nothing in the stdin or stdout
-  variables that we pass to the app:
-      DEBUG: Request returned failure status: 503
-      WARNING: Failed to discover available identity versions when contacting https://keystone-public-openstack.apps-crc.testing. Attempting to parse version from URL.
-      Failed to discover available identity versions when contacting https://keystone-public-openstack.apps-crc.testing. Attempting to parse version from URL.
-      ERROR: Could not find versioned identity endpoints when attempting to authenticate. Please check that your auth_url is correct. Service Unavailable (HTTP 503)
-      Could not find versioned identity endpoints when attempting to authenticate. Please check that your auth_url is correct. Service Unavailable (HTTP 503)
-      DEBUG: clean_up ListVolume: Could not find versioned identity endpoints when attempting to authenticate. Please check that your auth_url is correct. Service Unavailable (HTTP 503)
-      DEBUG: END return value: 1
-  So the LLM receives empty strings
-
 - Fix the Agent issue where it doesn't understand that there are no resources:
   Agent:
     > What are my volumes?

@@ -74,6 +74,7 @@ class LifecycleConfig(mcp_base.LifecycleConfigAbstract):
     allow_write: bool
     allowed_commands: tuple[str]
     params: list[str]
+    debug: bool
 
     def __init__(self, config: settings.Settings) -> None:
         """Initialize the OpenStack MCP tool.
@@ -90,6 +91,7 @@ class LifecycleConfig(mcp_base.LifecycleConfigAbstract):
         self.allow_write = osc_config.allow_write
         self.allowed_commands = osp_list_commands(ACCEPT_COMMANDS)[0]
         self.params = osc_params
+        self.debug = config.debug
 
     @staticmethod
     def add_tools(mcp: FastMCP) -> None:
@@ -204,6 +206,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         deferred_help: Optional[bool] = None,
         osc_config: LifecycleConfig | None = None,
     ) -> None:
+        self.osc_config: LifecycleConfig = osc_config
         description = description or osc_shell.__doc__.strip()
         version = version or osc_shell.openstackclient.__version__
         # Our custom command manager blocks commands that are not allowed
@@ -243,6 +246,21 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         # ignore warnings from openstacksdk since our users can't do anything
         # about them
         osc_shell.warnings.filterwarnings('ignore', module='openstack')
+
+    def configure_logging(self) -> None:
+        """Configure logging for the OpenStack shell and cliff app."""
+        super().configure_logging()
+
+        # We need to change the LOG variable to make sure it uses the right stderr instead of sys.stderr
+        console = logging.StreamHandler(self.stderr)
+        console_level = logging.DEBUG if self.osc_config.debug else logging.INFO
+        console.setLevel(console_level)
+        # We don't use self.CONSOLE_MESSAGE_FORMAT so we don't include the python module in the description:
+        formatter = logging.Formatter("%(levelname)s %(message)s")
+        console.setFormatter(formatter)
+        self.LOG = logging.getLogger('cliff.app')
+        self.LOG.addHandler(console)
+
 
     # TODO: Figure out why we need to reload everytime otherwise the commands dissapear and we fail
     # def _load_plugins(self) -> None:
