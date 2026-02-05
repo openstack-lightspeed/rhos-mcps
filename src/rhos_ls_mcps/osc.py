@@ -36,7 +36,7 @@ from osc_lib import exceptions as osc_exceptions
 
 from rhos_ls_mcps import mcp_base
 from rhos_ls_mcps import settings
-from rhos_ls_mcps.utils import tool_logger
+from rhos_ls_mcps.logging import tool_logger
 
 
 ACCEPT_COMMANDS: set[str] = {

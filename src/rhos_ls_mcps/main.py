@@ -16,7 +16,7 @@ import uvicorn
 
 from rhos_ls_mcps import osc
 from rhos_ls_mcps import settings
-from rhos_ls_mcps import utils
+from rhos_ls_mcps import logging as mcp_logging
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ def initialize(config: settings.Settings) -> FastMCP:
         logger.debug("Application lifespan initialized")
         yield app_context
 
-    utils.init_logging(config)
+    mcp_logging.init_logging(config)
     logger.info("Initializing RHOSO MCP server")
 
     # Use stateless_http=True to support multiple workers, otherwise a
