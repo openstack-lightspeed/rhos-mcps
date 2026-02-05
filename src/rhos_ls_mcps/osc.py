@@ -215,9 +215,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         ##########
         # TEMPORARY WORKAROUND FOR osc-lib BUG
         #
-        # TODO: Submit a fix for osc-lib so it passes stdin and stdout to cliff's app init method.
-        #       It's currently not passing stdin and stdout received arguments:
-        #       https://github.com/openstack/osc-lib/blob/feba9b91ae663288d5075e4e554377a39eb732d2/osc_lib/shell.py#L121
+        # TODO: Remove this when https://review.opendev.org/c/openstack/osc-lib/+/975784 is merged
         #       Until then we monkey patch the great-grandparent class here:
         #       MRO: [MyOpenStackShell, osc_shell.OpenStackShell, osc_lib.shell.OpenStackShell, cliff.app.App, ...]
         if MyOpenStackShell.original_ancestor is None:

@@ -27,8 +27,6 @@
 
 ### Bug fixes
 
-- Submit a fix for osc-lib so it passes stdin and stdout to cliff's app init
-  method.
 - When failing because Keystone is not available the LLM may try to call
   openstack using `oc`:
   `DEBUG: Running openstack_cli_mcp_tool with args: () and kwargs: {'command_str': 'oc exec -t openstackclient -- openstack volume list', 'ctx': Context()}`
