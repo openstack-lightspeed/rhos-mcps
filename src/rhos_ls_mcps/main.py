@@ -8,17 +8,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import logging
-import os
-import yaml
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
-from pydantic import Field
-from pydantic_settings import BaseSettings
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
 from rhos_ls_mcps import osc
+from rhos_ls_mcps import settings
 from rhos_ls_mcps import utils
 
 
@@ -35,43 +32,7 @@ class AppContext:
     osc: osc.LifecycleConfig
 
 
-class TransportSecuritySettings(BaseSettings):
-    enable_dns_rebinding_protection: bool = Field(default=False, description="Enable DNS rebinding protection")
-    allowed_hosts: list[str] = Field(default=["*:*"], description="Allowed hosts")
-    allowed_origins: list[str] = Field(default=["http://*:*"], description="Allowed origins")
-
-
-class Settings(BaseSettings):
-    ip: str = Field(default="0.0.0.0", description="IP address to bind to")
-    port: int = Field(default=8080, description="Port to bind to")
-    debug: bool = Field(default=False, description="Enable debug logging")
-    workers: int = Field(default=10, description="Number of workers to use")
-    log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [%(request_id)s|%(client_id)s] %(name)s %(message)s", description="Log format")
-    unicorn_log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [-|-] %(name)s %(message)s", description="Unicorn log format")
-    openstack: osc.Settings = Field(default=osc.Settings(), description="OpenStack settings")
-    mcp_transport_security: TransportSecuritySettings = Field(default=TransportSecuritySettings(), description="Transport security settings")
-
-
-def load_config():
-    """Load the configuration from the file."""
-    config_file = os.environ.get("RHOS_MCPS_CONFIG") or "config.yaml"
-    if not os.path.exists(config_file):
-        logger.warning("Config file not found, using default values")
-        config = {}
-    else:
-        try:
-            with open("config.yaml", "r") as f:
-                config = yaml.safe_load(f.read())
-        except FileNotFoundError as error:
-            message = "Error: yml config file not found."
-            logger.exception(message)
-            raise FileNotFoundError(error, message) from error
-
-    settings = Settings(**config)
-    return settings
-
-
-def initialize(config: Settings) -> FastMCP:
+def initialize(config: settings.Settings) -> FastMCP:
     """Initialize logging and the MCP server with the tools."""
     @asynccontextmanager
     async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
@@ -102,8 +63,8 @@ def initialize(config: Settings) -> FastMCP:
 
 
 def create_app():
-    settings = load_config()
-    mcp = initialize(settings)
+    config = settings.load_config()
+    mcp = initialize(config)
     mcp_app = mcp.streamable_http_app()
 
     # Wrap ASGI application with CORS middleware to allow browser-based clients to work
@@ -120,22 +81,22 @@ def create_app():
 
 
 def main():
-    settings = load_config()
+    config = settings.load_config()
 
     # Configure uvicorn logging
-    uvicorn_log_level = "debug" if settings.debug else "info"
+    uvicorn_log_level = "debug" if config.debug else "info"
     log_config = uvicorn.config.LOGGING_CONFIG
-    log_config["formatters"]["access"]["fmt"] = settings.unicorn_log_format
-    log_config["formatters"]["default"]["fmt"] = settings.unicorn_log_format
+    log_config["formatters"]["access"]["fmt"] = config.unicorn_log_format
+    log_config["formatters"]["default"]["fmt"] = config.unicorn_log_format
 
     # Pass string instead of an instance to support multiple workers.
     # Pass the factory=True argument to use a function (create_app) instead of a variable.
     uvicorn.run(
         "rhos_ls_mcps.main:create_app",
-        host=settings.ip,
-        port=settings.port,
+        host=config.ip,
+        port=config.port,
         log_level=uvicorn_log_level,
-        workers=settings.workers,
+        workers=config.workers,
         timeout_keep_alive=5,
         access_log=False,
         factory=True,

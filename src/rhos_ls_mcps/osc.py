@@ -27,16 +27,15 @@ import json
 import logging
 import os
 import shlex
-from typing import Any, Callable,Optional
+from typing import Any, Callable, Optional
 
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 import openstackclient.shell as osc_shell
 from osc_lib import exceptions as osc_exceptions
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
 from rhos_ls_mcps import mcp_base
+from rhos_ls_mcps import settings
 from rhos_ls_mcps.utils import tool_logger
 
 
@@ -65,12 +64,6 @@ logger = logging.getLogger(__name__)
 ##########
 # METHODS AND CLASSES CALLED FROM main.py
 
-class Settings(BaseSettings):
-    allow_write: bool = Field(default=False, description="Allow write operations (default: false)")
-    ca_cert: Optional[str] = Field(default=None, description="CA certificate bundle file (Env: OS_CACERT)")
-    insecure: bool = Field(default=False, description="Allow insecure SSL connections (Env: OS_INSECURE)")
-
-
 class LifecycleConfig(mcp_base.LifecycleConfigAbstract):
     """MCP server lifecycle configuration for the OpenStack MCP tool.
 
@@ -82,7 +75,7 @@ class LifecycleConfig(mcp_base.LifecycleConfigAbstract):
     allowed_commands: tuple[str]
     params: list[str]
 
-    def __init__(self, config) -> None:
+    def __init__(self, config: settings.Settings) -> None:
         """Initialize the OpenStack MCP tool.
 
         This sets the global variables that tool calls will need.
