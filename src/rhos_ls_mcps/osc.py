@@ -238,6 +238,8 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
            deferred_help=deferred_help,
         )
 
+        self.NAME = "openstack"
+
         self.api_version = {}
 
         # ?: This doesn't seem to be used
