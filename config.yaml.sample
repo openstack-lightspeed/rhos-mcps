@@ -12,6 +12,7 @@ openstack:
   insecure: false
 
 mcp_transport_security:
+    token: supersecret
     enable_dns_rebinding_protection: false
     allowed_hosts:
       - "*:*"

@@ -14,6 +14,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
+from rhos_ls_mcps import auth as auth_module
 from rhos_ls_mcps import osc
 from rhos_ls_mcps import settings
 from rhos_ls_mcps import logging as mcp_logging
@@ -45,17 +46,18 @@ def initialize(config: settings.Settings) -> FastMCP:
     mcp_logging.init_logging(config)
     logger.info("Initializing RHOSO MCP server")
 
+    security_cfg: auth_module.SecurityConfig = auth_module.get_auth_settings(config)
+
     # Use stateless_http=True to support multiple workers, otherwise a
     # session can go to a different worker and it will fail.
     mcp = FastMCP(
         "rhoso-tools",
         lifespan=app_lifespan,
         stateless_http=True,
-        transport_security=TransportSecuritySettings(
-            enable_dns_rebinding_protection=config.mcp_transport_security.enable_dns_rebinding_protection,
-            allowed_hosts=config.mcp_transport_security.allowed_hosts,
-            allowed_origins=config.mcp_transport_security.allowed_origins,
-        ),
+        auth_server_provider=security_cfg.auth_server_provider,
+        auth=security_cfg.auth,
+        token_verifier=security_cfg.token_verifier,
+        transport_security=security_cfg.transport_security,
     )
 
     osc.LifecycleConfig.add_tools(mcp)

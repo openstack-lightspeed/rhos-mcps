@@ -16,6 +16,7 @@ class OpenStackSettings(BaseSettings):
 
 
 class TransportSecuritySettings(BaseSettings):
+    token: Optional[str] = Field(default=os.environ.get("MCP_SECURITY_TOKEN"), description="Token to use for basic authentication (Env: MCP_SECURITY_TOKEN)")
     enable_dns_rebinding_protection: bool = Field(default=False, description="Enable DNS rebinding protection")
     allowed_hosts: list[str] = Field(default=["*:*"], description="Allowed hosts")
     allowed_origins: list[str] = Field(default=["http://*:*"], description="Allowed origins")
