@@ -24,10 +24,10 @@ def show_diff(list_name: str, data_1: list[str], data_2: list[str], change_msg: 
 
     msg = ""
     if in_list_1_not_in_list_2:
-        msg += "\n<" + "\n<".join(sorted(in_list_1_not_in_list_2))
+        msg += "\n< " + "\n<".join(sorted(in_list_1_not_in_list_2))
 
     if in_list_2_not_in_list_1:
-        msg += "\n>" + "\n>".join(sorted(in_list_2_not_in_list_1))
+        msg += "\n> " + "\n>".join(sorted(in_list_2_not_in_list_1))
 
     if msg:
         print(f"{list_name} has changed, {change_msg}:{msg}")
