@@ -357,8 +357,11 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
             mcp_argv: Argumments for credentials and certificates.
             user_argv: Arguments for the OpenStack command.
         """
-        self._initialize_api_versions(mcp_argv)
-        return super().run(mcp_argv + user_argv)
+        try:
+            self._initialize_api_versions(mcp_argv)
+            return super().run(mcp_argv + user_argv)
+        except SystemExit as e:
+            raise ToolError(f"OpenStack failed {e.code}: {self.stdout.getvalue() or self.stderr.getvalue()}")
 
 
 def get_osp_credentials_args(ctx: Context) -> list[str]:
