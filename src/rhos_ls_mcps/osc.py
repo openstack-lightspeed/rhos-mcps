@@ -497,15 +497,17 @@ class MyCommandManager(osc_shell.commandmanager.CommandManager):
         super().__init__(*args, **kwargs)
 
     def load_commands(self, namespace: str) -> None:
-        # Detect commands that were added since the last load so we only act on new ones
-        previous_commands = set(self.commands)
+        # Don't try to be smart and detect commands that were added since the
+        # last load to only act on the new ones because when we do the API
+        # discovery we load the commands twice, so they would already exist.
         super().load_commands(namespace)
-        new_commands = set(self.commands) - previous_commands
 
         # Replace entry points for commands that are not allowed with our custom
         # class that rejects the request.
-        for command in new_commands:
-            if not self._is_command_allowed(command.split()):
+        for command, ep in self.commands.items():
+            # Check agains EntryPoint instead of not being RejectedEntryPoint
+            # because there's also EntryPointWrapper for commands such as help
+            if isinstance(ep, EntryPoint) and not self._is_command_allowed(command.split()):
                 # Using `self.commands.pop(command)` would be simpler, but wouldn't let us differentiate
                 # between blocked and wrong commands
                 entry_point = self.commands[command]
