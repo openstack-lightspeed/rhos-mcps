@@ -480,9 +480,15 @@ class RejectedEntryPoint(EntryPoint):
         res.take_action = self.take_action
         return res
 
+    def __repr__(self):
+        return (
+            f'RejectedEntryPoint(name={self.name!r}, value={self.value!r}, '
+            f'group={self.group!r})'
+        )
 
 class MyCommandManager(osc_shell.commandmanager.CommandManager):
     """Custom command manager to replace entry points for commands that are not allowed."""
+
     def __init__(self, *args, **kwargs):
         self.osc_config: Optional[LifecycleConfig] = kwargs.pop('osc_config', None)
         self.stderr: Optional[io.StringIO] = kwargs.pop('stderr', None)
