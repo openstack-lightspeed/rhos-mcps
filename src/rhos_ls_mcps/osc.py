@@ -58,6 +58,8 @@ ACCEPT_COMMANDS: set[str] = {
         "class-schema",
 }
 
+SHELL = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -147,16 +149,10 @@ def openstack_cli_mcp_tool(command_str: str, ctx: Context) -> str:
     # TODO: Actually implement our own shell so we don't reload plugins and commands every time?
     #       https://github.com/openstack/python-openstackclient/blob/master/openstackclient/shell.py
     #       Which inherits from: https://github.com/openstack/osc-lib/blob/master/osc_lib/shell.py
-    stdin = None
-    stdout = io.StringIO()
-    stderr = io.StringIO()
+    global SHELL
 
-    shell = MyOpenStackShell(
-        stdin=stdin,
-        stdout=stdout,
-        stderr=stderr,
-        osc_config=ctx.request_context.lifespan_context.osc,
-    )
+    if not SHELL:
+        SHELL = MyOpenStackShell(osc_config=ctx.request_context.lifespan_context.osc)
 
     # Build the command arguments list for the openstack command
     mcp_argv = (
@@ -165,18 +161,18 @@ def openstack_cli_mcp_tool(command_str: str, ctx: Context) -> str:
     )
     user_argv = split_command(command_str, ctx)
 
-    ret_value = shell.run(mcp_argv, user_argv)
+    ret_value, stdout, stderr = SHELL.run(mcp_argv, user_argv)
 
     # TODO; Redact values?
     result = {
-        "stdout": stdout.getvalue(),
-        "stderr": stderr.getvalue(),
+        "stdout": stdout,
+        "stderr": stderr,
     }
 
     if ret_value:
         raise ToolError("openstack failed with error code {}: {}".format(ret_value, result))
 
-    return stdout.getvalue() or stderr.getvalue()
+    return stdout or stderr
 
 
 class MyOpenStackShell(osc_shell.OpenStackShell):
@@ -192,21 +188,21 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
     original_ancestor: Callable | None = None
     versions_initialized: bool = False
     # TODO: Figure out why we need to reload everytime otherwise the commands dissapear and we fail
-    #loaded_plugins: bool = False
-    #loaded_commands: bool = False
+    loaded_plugins: bool = False
+    loaded_commands: bool = False
 
     def __init__(
         self,
         description: str | None = None,
         version: str | None = None,
-        stdin: osc_shell.shell.ty.TextIO | None = None,
-        stdout: osc_shell.shell.ty.TextIO | None = None,
-        stderr: osc_shell.shell.ty.TextIO | None = None,
         interactive_app_factory: type['interactive.InteractiveApp'] | None = None,
         deferred_help: Optional[bool] = None,
         osc_config: LifecycleConfig | None = None,
     ) -> None:
         self.osc_config: LifecycleConfig = osc_config
+        stderr: io.StringIO = io.StringIO()
+        stdout: io.StringIO = io.StringIO()
+
         description = description or osc_shell.__doc__.strip()
         version = version or osc_shell.openstackclient.__version__
         # Our custom command manager blocks commands that are not allowed
@@ -225,13 +221,13 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
             great_grandparent = self.__class__.__mro__[3]
             MyOpenStackShell.original_ancestor = great_grandparent.__init__
         self.__class__.__mro__[3].__init__ = lambda self, *args, **kwargs: MyOpenStackShell.original_ancestor(
-            self, stdin=stdin, stdout=stdout, stderr=stderr, interactive_app_factory=interactive_app_factory, *args, **kwargs)
+            self, stdin=None, stdout=stdout, stderr=stderr, interactive_app_factory=interactive_app_factory, *args, **kwargs)
 
         super(osc_shell.OpenStackShell, self).__init__(
            description=description,
            version=version,
            command_manager=command_manager,
-           stdin=stdin,
+           stdin=None,
            stdout=stdout,
            stderr=stderr,
            interactive_app_factory=interactive_app_factory,
@@ -265,17 +261,17 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
 
 
     # TODO: Figure out why we need to reload everytime otherwise the commands dissapear and we fail
-    # def _load_plugins(self) -> None:
-    #     """Only load plugins once."""
-    #     if not self.loaded_plugins:
-    #         super()._load_plugins()
-    #         MyOpenStackShell.loaded_plugins = True
+    def _load_plugins(self) -> None:
+        """Only load plugins once."""
+        if not self.loaded_plugins:
+            super()._load_plugins()
+            MyOpenStackShell.loaded_plugins = True
 
-    # def _load_commands(self) -> None:
-    #     """Only load commands once."""
-    #     if not self.loaded_commands:
-    #         super()._load_commands()
-    #         MyOpenStackShell.loaded_commands = True
+    def _load_commands(self) -> None:
+        """Only load commands once."""
+        if not self.loaded_commands:
+            super()._load_commands()
+            MyOpenStackShell.loaded_commands = True
 
     # # From https://specs.openstack.org/openstack/service-types-authority/_downloads/e1997ad174a98e6705a285ae2a24dff8/service-types.yaml
     @staticmethod
@@ -318,15 +314,12 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         if self.versions_initialized:
             return
 
-        # Make sure we start with a clean stdout and stderr
-        self._clean_stds()
-
         versions_varg = ["versions", "show", "--format", "json"]
-        response = super().run(mcp_argv + versions_varg)
+        response, stdout, stderr = self._do_run(mcp_argv + versions_varg)
         if response:
-            raise ToolError(f"Failed to get API versions ({response}):\n{self.stdout.getvalue()}\n{self.stderr.getvalue()}")
+            raise ToolError(f"Failed to get API versions ({response}):\n{stdout}\n{stderr}")
         # For some reason stdout has 0x00 characters at the start, clean it
-        api_versions = json.loads(_clean_response(self.stdout.getvalue()))
+        api_versions = json.loads(_clean_response(stdout))
 
         version_defaults = {}
 
@@ -345,12 +338,23 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         # the user can override them if needed and we don't need to actually
         # pass them all on the command line.
         self.parser.set_defaults(**version_defaults)
-
-        # Leave a clean stdout and stderr for the real user call
-        self._clean_stds()
         MyOpenStackShell.versions_initialized = True
 
-    def run(self, mcp_argv: list[str], user_argv: list[str]) -> int:
+    def _do_run(self, cmd: list[str]) -> tuple[int, str, str]:
+        self._clean_stds()
+        try:
+            return_code = super().run(cmd)
+        except (SystemExit, Exception) as e:
+            return_code = getattr(e, 'code', 1)
+            msg = getattr(e, 'msg', str(e))
+            logger.debug(f"Failure running command: {cmd} with code: {return_code} and message: {msg}")
+        finally:
+            stdout = self.stdout.getvalue()
+            stderr = self.stderr.getvalue()
+            self._clean_stds()
+            return return_code, stdout, stderr
+
+    def run(self, mcp_argv: list[str], user_argv: list[str]) -> tuple[int, str, str]:
         """Run the OpenStack shell.
 
         Ensures that the API versions are initialized to the latest version for each service.
@@ -361,7 +365,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         """
         try:
             self._initialize_api_versions(mcp_argv)
-            return super().run(mcp_argv + user_argv)
+            return self._do_run(mcp_argv + user_argv)
         except SystemExit as e:
             raise ToolError(f"OpenStack failed {e.code}: {self.stdout.getvalue() or self.stderr.getvalue()}")
 
@@ -457,7 +461,6 @@ def osp_list_commands(verbs: set[str]) -> tuple[list[str], list[str]]:
 #
 # This way we can differentiate between blocked and wrong commands efficiently
 # since we don't have to check the command on each request.
-
 class RejectedEntryPoint(EntryPoint):
     """Entry point that rejects the request."""
     # Parent is inmutable, so we have to define our additiona slots and then
@@ -470,20 +473,11 @@ class RejectedEntryPoint(EntryPoint):
         # Bypass protections on the immutable base to set additional attributes
         object.__setattr__(self, 'stderr', stderr)
 
-    def take_action(self, *args, **kwargs) -> Any:
-        """Called when the entrypoint command is executed."""
-        # raise ToolError("Command is rejected: {}".format(self.name))
-        msg = f"Command {self.name} is currently blocked for LLM use as it could modify the deployment."
-        # Manually print to stderr because for some reason the CommandError, or
-        # even ToolError, doesn't show up in stderr.
-        self.stderr.write(msg)
-        raise osc_exceptions.CommandError(msg)
-
     def load(self) -> Any:
         """Load the entrypoint command replacing the action."""
-        res = super().load()
-        res.take_action = self.take_action
-        return res
+        # Raise it on load instead of take_action to avoid concatenating exceptions (don't know why it happens)
+        self.stderr.write(f"Command {self.name} is currently blocked for LLM use as it could modify the deployment.")
+        raise SystemError(3)
 
     def __repr__(self):
         return (
