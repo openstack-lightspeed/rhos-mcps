@@ -1,0 +1,62 @@
+name: "Build and push rhos-mcps container image"
+
+on:
+  workflow_dispatch: {}
+
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+env:
+  IMAGE_NAME: quay.io/openstack-lightspeed/${{ github.event.repository.name }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set TAGS for push builds
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "TAGS=${{ github.sha }} latest" >> $GITHUB_ENV
+
+      - name: Build image
+        id: build_image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ github.event.repository.name }}
+          tags: ${{ env.TAGS || 'pr-check' }}
+          oci: true
+          context: .
+          containerfiles: |
+            ./Containerfile
+
+      - name: Log in to quay.io
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ secrets.QUAY_IO_LOGIN }}
+          password: ${{ secrets.QUAY_IO_PASSWORD }}
+          registry: quay.io
+
+      - name: Push the image to quay.io
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: redhat-actions/push-to-registry@v2
+        id: push
+        with:
+          registry: quay.io/openstack-lightspeed
+          image: ${{ steps.build_image.outputs.image }}
+          tags: ${{ steps.build_image.outputs.tags }}
+          username: ${{ secrets.QUAY_IO_LOGIN }}
+          password: ${{ secrets.QUAY_IO_PASSWORD }}
