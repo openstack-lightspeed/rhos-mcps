@@ -6,6 +6,7 @@ Available tools:
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 import logging
 
@@ -18,6 +19,7 @@ from rhos_ls_mcps import auth as auth_module
 from rhos_ls_mcps import osc
 from rhos_ls_mcps import settings
 from rhos_ls_mcps import logging as mcp_logging
+from rhos_ls_mcps import utils
 
 
 logger = logging.getLogger(__name__)
@@ -40,6 +42,7 @@ def initialize(config: settings.Settings) -> FastMCP:
         """Manage application lifecycle with type-safe context."""
         osc_config = osc.LifecycleConfig(config)
         app_context: AppContext= AppContext(osc=osc_config)
+        utils.init_process_pool(config.processes_pool_size)
         logger.debug("Application lifespan initialized")
         yield app_context
 

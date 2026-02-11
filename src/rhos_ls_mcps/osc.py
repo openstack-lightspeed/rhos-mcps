@@ -20,6 +20,7 @@
 - https://github.com/openstack/osc-lib/blob/master/osc_lib/shell.py
 """
 
+import asyncio
 from dataclasses import dataclass
 from importlib.metadata import entry_points, EntryPoint
 import io
@@ -32,11 +33,11 @@ from typing import Any, Callable, Optional
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 import openstackclient.shell as osc_shell
-from osc_lib import exceptions as osc_exceptions
 
 from rhos_ls_mcps import mcp_base
 from rhos_ls_mcps import settings
 from rhos_ls_mcps.logging import tool_logger
+from rhos_ls_mcps.utils import EXECUTOR
 
 
 ACCEPT_COMMANDS: set[str] = {
@@ -111,7 +112,7 @@ def _clean_response(response: str) -> str:
     return response.lstrip("\x00")
 
 @tool_logger
-def openstack_cli_mcp_tool(command_str: str, ctx: Context) -> str:
+async def openstack_cli_mcp_tool(command_str: str, ctx: Context) -> str:
     """Run an OpenStackClient (OSC) CLI command
 
     Runs the `openstack` command as if it were run in a terminal.
@@ -161,7 +162,7 @@ def openstack_cli_mcp_tool(command_str: str, ctx: Context) -> str:
     )
     user_argv = split_command(command_str, ctx)
 
-    ret_value, stdout, stderr = SHELL.run(mcp_argv, user_argv)
+    ret_value, stdout, stderr = await SHELL.run(mcp_argv, user_argv)
 
     # TODO; Redact values?
     result = {
@@ -245,6 +246,8 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         # about them
         osc_shell.warnings.filterwarnings('ignore', module='openstack')
 
+        self.lock = asyncio.Lock()
+
     def configure_logging(self) -> None:
         """Configure logging for the OpenStack shell and cliff app."""
         super().configure_logging()
@@ -303,7 +306,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         self.stderr.seek(0)
         self.stderr.truncate(0)
 
-    def _initialize_api_versions(self, mcp_argv: list[str]) -> None:
+    async def _initialize_api_versions(self, mcp_argv: list[str]) -> None:
         """Initialize the api_version dictionary with the latest API version for each service.
 
         This makes a call to OpenStack to get the versions.
@@ -311,34 +314,39 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         Args:
             mcp_argv: Argumments for credentials and certificates.
         """
-        if self.versions_initialized:
-            return
+        await self.lock.acquire()
+        try:
+            if self.versions_initialized:
+                return
 
-        versions_varg = ["versions", "show", "--format", "json"]
-        response, stdout, stderr = self._do_run(mcp_argv + versions_varg)
-        if response:
-            raise ToolError(f"Failed to get API versions ({response}):\n{stdout}\n{stderr}")
-        # For some reason stdout has 0x00 characters at the start, clean it
-        api_versions = json.loads(_clean_response(stdout))
+            versions_varg = ["versions", "show", "--format", "json"]
+            # Run in this process to later on share the loaded plugins and commands with command runs
+            response, stdout, stderr = self._do_run(mcp_argv + versions_varg)
+            if response:
+                raise ToolError(f"Failed to get API versions ({response}):\n{stdout}\n{stderr}")
+            # For some reason stdout has 0x00 characters at the start, clean it
+            api_versions = json.loads(_clean_response(stdout))
 
-        version_defaults = {}
+            version_defaults = {}
 
-        for version_info in api_versions:
-            # We only care about the latest API version
-            if version_info["Status"] == "CURRENT":
-                # Some services reportt microversions, others only report the version
-                arg_name = self._get_version_arg_name_from_service_type(version_info["Service Type"])
-                version = version_info["Max Microversion"] or version_info["Version"]
-                # Keystone is weird, it reports 3.14 but doesn't accept it :-(
-                if arg_name in ("os_identity_api_version", "os_key_manager_api_version"):
-                    version = version.split(".")[0]
-                version_defaults[arg_name] = version
+            for version_info in api_versions:
+                # We only care about the latest API version
+                if version_info["Status"] == "CURRENT":
+                    # Some services reportt microversions, others only report the version
+                    arg_name = self._get_version_arg_name_from_service_type(version_info["Service Type"])
+                    version = version_info["Max Microversion"] or version_info["Version"]
+                    # Keystone is weird, it reports 3.14 but doesn't accept it :-(
+                    if arg_name in ("os_identity_api_version", "os_key_manager_api_version"):
+                        version = version.split(".")[0]
+                    version_defaults[arg_name] = version
 
-        # Change the default values for the api versions in the parser, that way
-        # the user can override them if needed and we don't need to actually
-        # pass them all on the command line.
-        self.parser.set_defaults(**version_defaults)
-        MyOpenStackShell.versions_initialized = True
+            # Change the default values for the api versions in the parser, that way
+            # the user can override them if needed and we don't need to actually
+            # pass them all on the command line.
+            self.parser.set_defaults(**version_defaults)
+            MyOpenStackShell.versions_initialized = True
+        finally:
+            self.lock.release()
 
     def _do_run(self, cmd: list[str]) -> tuple[int, str, str]:
         self._clean_stds()
@@ -354,7 +362,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
             self._clean_stds()
             return return_code, stdout, stderr
 
-    def run(self, mcp_argv: list[str], user_argv: list[str]) -> tuple[int, str, str]:
+    async def run(self, mcp_argv: list[str], user_argv: list[str]) -> tuple[int, str, str]:
         """Run the OpenStack shell.
 
         Ensures that the API versions are initialized to the latest version for each service.
@@ -364,10 +372,15 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
             user_argv: Arguments for the OpenStack command.
         """
         try:
-            self._initialize_api_versions(mcp_argv)
-            return self._do_run(mcp_argv + user_argv)
+            await self._initialize_api_versions(mcp_argv)
+            # Run in a separate process to allow concurrency
+            return await EXECUTOR.run_function(run_shell_cmd, mcp_argv + user_argv)
         except SystemExit as e:
             raise ToolError(f"OpenStack failed {e.code}: {self.stdout.getvalue() or self.stderr.getvalue()}")
+
+
+def run_shell_cmd(cmd: list[str]) -> tuple[int, str, str]:
+    return SHELL._do_run(cmd)
 
 
 def get_osp_credentials_args(ctx: Context) -> list[str]:
