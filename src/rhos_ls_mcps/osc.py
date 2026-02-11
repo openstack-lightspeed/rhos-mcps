@@ -33,10 +33,12 @@ from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 import openstackclient.shell as osc_shell
 
-from rhos_ls_mcps import mcp_base
 from rhos_ls_mcps import settings
 from rhos_ls_mcps.logging import tool_logger
 from rhos_ls_mcps import utils
+
+
+logger = logging.getLogger(__name__)
 
 
 ACCEPT_COMMANDS: set[str] = {
@@ -59,48 +61,27 @@ ACCEPT_COMMANDS: set[str] = {
 }
 
 SHELL = None
-
-logger = logging.getLogger(__name__)
+ALLOWED_COMMANDS: list[str] = []
+OSC_PARAMS: list[str] = []
 
 
 ##########
 # METHODS AND CLASSES CALLED FROM main.py
 
-class LifecycleConfig(mcp_base.LifecycleConfigAbstract):
-    """MCP server lifecycle configuration for the OpenStack MCP tool.
+def initialize(mcp: FastMCP):
+    global ALLOWED_COMMANDS, OSC_PARAMS
 
-    Used in main.py:AppContext.osc and received by all the tools that have the
-    `ctx: Context` parameter. Instance is accessible through
-    `ctx.request_context.lifespan_context.osc`.
-    """
-    allow_write: bool
-    allowed_commands: tuple[str]
-    params: list[str]
-    debug: bool
+    mcp.add_tool(openstack_cli_mcp_tool,
+                name="openstack-cli",
+                title="OpenStack Client MCP Tool")
 
-    def __init__(self, config: settings.Settings) -> None:
-        """Initialize the OpenStack MCP tool.
+    if settings.CONFIG.openstack.ca_cert:
+        OSC_PARAMS.extend(["--os-cacert", settings.CONFIG.openstack.ca_cert])
 
-        This sets the global variables that tool calls will need.
+    if settings.CONFIG.openstack.insecure:
+        OSC_PARAMS.append("--insecure")
 
-        Called from main.py:initialize()
-        """
-        osc_config = config.openstack
-        osc_params = ["--os-cacert", osc_config.ca_cert] if osc_config.ca_cert else []
-        if osc_config.insecure:
-            osc_params.append("--insecure")
-
-        self.allow_write = osc_config.allow_write
-        self.allowed_commands = osp_list_commands(ACCEPT_COMMANDS)[0]
-        self.params = osc_params
-        self.debug = config.debug
-
-    @staticmethod
-    def add_tools(mcp: FastMCP) -> None:
-        """Add the module's MCP tools to the server."""
-        mcp.add_tool(openstack_cli_mcp_tool,
-                    name="openstack-cli",
-                    title="OpenStack Client MCP Tool")
+    ALLOWED_COMMANDS = osp_list_commands(ACCEPT_COMMANDS)[0]
 
 
 ##########
@@ -109,6 +90,7 @@ class LifecycleConfig(mcp_base.LifecycleConfigAbstract):
 def _clean_response(response: str) -> str:
     """Clear the response to remove 0x00 characters at the start."""
     return response.lstrip("\x00")
+
 
 @tool_logger
 async def openstack_cli_mcp_tool(command_str: str, ctx: Context) -> str:
@@ -152,11 +134,11 @@ async def openstack_cli_mcp_tool(command_str: str, ctx: Context) -> str:
     global SHELL
 
     if not SHELL:
-        SHELL = MyOpenStackShell(osc_config=ctx.request_context.lifespan_context.osc)
+        SHELL = MyOpenStackShell()
 
     # Build the command arguments list for the openstack command
     mcp_argv = (
-        ctx.request_context.lifespan_context.osc.params +
+        OSC_PARAMS +
         get_osp_credentials_args(ctx)
     )
     user_argv = split_command(command_str, ctx)
@@ -196,9 +178,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         version: str | None = None,
         interactive_app_factory: type['interactive.InteractiveApp'] | None = None,
         deferred_help: Optional[bool] = None,
-        osc_config: LifecycleConfig | None = None,
     ) -> None:
-        self.osc_config: LifecycleConfig = osc_config
         stderr: io.StringIO = io.StringIO()
         stdout: io.StringIO = io.StringIO()
 
@@ -206,8 +186,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         version = version or osc_shell.openstackclient.__version__
         # Our custom command manager blocks commands that are not allowed
         command_manager = MyCommandManager('openstack.cli',
-                                           stderr=stderr,
-                                           osc_config=osc_config)
+                                           stderr=stderr)
         deferred_help = True if deferred_help is None else deferred_help
 
         super(osc_shell.OpenStackShell, self).__init__(
@@ -240,7 +219,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
 
         # We need to change the LOG variable to make sure it uses the right stderr instead of sys.stderr
         console = logging.StreamHandler(self.stderr)
-        console_level = logging.DEBUG if self.osc_config.debug else logging.INFO
+        console_level = logging.DEBUG if settings.CONFIG.debug else logging.INFO
         console.setLevel(console_level)
         # We don't use self.CONSOLE_MESSAGE_FORMAT so we don't include the python module in the description:
         formatter = logging.Formatter("%(levelname)s %(message)s")
@@ -488,10 +467,9 @@ class MyCommandManager(osc_shell.commandmanager.CommandManager):
     """Custom command manager to replace entry points for commands that are not allowed."""
 
     def __init__(self, *args, **kwargs):
-        self.osc_config: Optional[LifecycleConfig] = kwargs.pop('osc_config', None)
         self.stderr: Optional[io.StringIO] = kwargs.pop('stderr', None)
-        if not self.osc_config or not self.stderr:
-            raise ToolError("osc_config and stderr are required to initialize the command manager")
+        if not self.stderr:
+            raise ToolError("stderr is required to initialize the command manager")
         super().__init__(*args, **kwargs)
 
     def load_commands(self, namespace: str) -> None:
@@ -516,7 +494,7 @@ class MyCommandManager(osc_shell.commandmanager.CommandManager):
                     stderr=self.stderr)
 
     def _is_command_allowed(self, argv: list[str]) -> bool:
-        if self.osc_config.allow_write:
+        if settings.CONFIG.openstack.allow_write:
             return True
         user_cmd = '_'.join(argv) + "_"
-        return any(user_cmd.startswith(cmd) for cmd in self.osc_config.allowed_commands)
+        return any(user_cmd.startswith(cmd) for cmd in ALLOWED_COMMANDS)

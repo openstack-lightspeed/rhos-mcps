@@ -8,7 +8,7 @@ from typing import Any, Callable
 class ProcessPool:
     def __init__(self, pool_size: int):
         self.pool_size = pool_size
-        self.pool = ProcessPoolExecutor(max_workers=pool_size)
+        self.pool = ProcessPoolExecutor(max_workers=pool_size, mp_context=multiprocessing.get_context('fork'))
         self.loop = asyncio.get_running_loop()
 
     async def run_function(self, func: Callable[..., Any], *args: Any) -> Any:

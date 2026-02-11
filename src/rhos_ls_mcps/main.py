@@ -4,9 +4,6 @@ Available tools:
 - openstack CLI tool
 """
 
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
 import logging
 
 from mcp.server.fastmcp import FastMCP
@@ -23,29 +20,11 @@ from rhos_ls_mcps import utils
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class AppContext:
-    """Application context with typed dependencies.
-
-    This is received by all the tools that have the `ctx: Context` parameter.
-    Instance is accessible through `ctx.request_context.lifespan_context`.
-    """
-    osc: osc.LifecycleConfig
-
-
 def initialize(config: settings.Settings) -> FastMCP:
     """Initialize logging and the MCP server with the tools."""
-    @asynccontextmanager
-    async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
-        """Manage application lifecycle with type-safe context."""
-        osc_config = osc.LifecycleConfig(config)
-        app_context: AppContext= AppContext(osc=osc_config)
-        utils.init_process_pool(config.processes_pool_size)
-        logger.debug("Application lifespan initialized")
-        yield app_context
-
     mcp_logging.init_logging(config)
     logger.info("Initializing RHOSO MCP server")
+    utils.init_process_pool(config.processes_pool_size)
 
     security_cfg: auth_module.SecurityConfig = auth_module.get_auth_settings(config)
 
@@ -53,7 +32,6 @@ def initialize(config: settings.Settings) -> FastMCP:
     # session can go to a different worker and it will fail.
     mcp = FastMCP(
         "rhoso-tools",
-        lifespan=app_lifespan,
         stateless_http=True,
         auth_server_provider=security_cfg.auth_server_provider,
         auth=security_cfg.auth,
@@ -61,7 +39,8 @@ def initialize(config: settings.Settings) -> FastMCP:
         transport_security=security_cfg.transport_security,
     )
 
-    osc.LifecycleConfig.add_tools(mcp)
+    osc.initialize(mcp)
+
     return mcp
 
 

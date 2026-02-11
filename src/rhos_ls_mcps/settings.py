@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
 
 def load_config():
+    global CONFIG
     """Load the configuration from the file."""
     config_file = os.environ.get("RHOS_MCPS_CONFIG") or "config.yaml"
     if not os.path.exists(config_file):
@@ -49,5 +50,9 @@ def load_config():
             logger.exception(message)
             raise FileNotFoundError(error, message) from error
 
-    settings = Settings(**config)
-    return settings
+    CONFIG = Settings(**config)
+    return CONFIG
+
+
+# Global variable to store the configuration
+CONFIG: Settings | None = None
