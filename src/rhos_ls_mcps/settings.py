@@ -6,6 +6,8 @@ from typing import Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
+from rhos_ls_mcps import oc_defaults
+
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +15,13 @@ class OpenStackSettings(BaseSettings):
     allow_write: bool = Field(default=False, description="Allow write operations (default: false)")
     ca_cert: Optional[str] = Field(default=None, description="CA certificate bundle file (Env: OS_CACERT)")
     insecure: bool = Field(default=False, description="Allow insecure SSL connections (Env: OS_INSECURE)")
+
+
+class OpenShiftSettings(BaseSettings):
+    allow_write: bool = Field(default=False, description="Allow write operations (default: false)")
+    insecure: bool = Field(default=False, description="Allow insecure SSL connections")
+    allowed_commands: list[str] = Field(default=oc_defaults.DEFAULT_ALLOWED_COMMANDS, description="Allowed commands")
+    blocked_commands: list[str] = Field(default=oc_defaults.DEFAULT_BLOCKED_COMMANDS, description="Explicitly blocked commands")
 
 
 class TransportSecuritySettings(BaseSettings):
@@ -31,6 +40,7 @@ class Settings(BaseSettings):
     log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [%(request_id)s|%(client_id)s] %(name)s %(message)s", description="Log format")
     unicorn_log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [-|-] %(name)s %(message)s", description="Unicorn log format")
     openstack: OpenStackSettings = Field(default=OpenStackSettings(), description="OpenStack settings")
+    openshift: OpenShiftSettings = Field(default=OpenShiftSettings(), description="OpenShift settings")
     mcp_transport_security: TransportSecuritySettings = Field(default=TransportSecuritySettings(), description="Transport security settings")
 
 

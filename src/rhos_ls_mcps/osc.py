@@ -357,13 +357,6 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         # pass them all on the command line.
         self.parser.set_defaults(**version_defaults)
 
-    def _validate_arguments(self, user_argv: list[str]) -> None:
-        # This is a very rudimentary implementation, since we could be getting false positives
-        for reject_arg in REJECT_GLOBAL_ARGS:
-            for user_arg in user_argv:
-                if user_arg.strip().startswith(reject_arg):
-                    raise ToolError(f"Global argument {user_arg} is not allowed")
-
     def _do_run(self, cmd: list[str]) -> tuple[int, str, str]:
         self._clean_stds()
         try:
@@ -389,7 +382,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         """
         try:
             await self._initialize_parser(mcp_argv, user_argv)
-            self._validate_arguments(user_argv)
+            utils.reject_arguments(user_argv, REJECT_GLOBAL_ARGS)
             # Run in a separate process to allow concurrency
             return await utils.EXECUTOR.run_function(run_shell_cmd, mcp_argv + user_argv)
         except SystemExit as e:

@@ -12,6 +12,10 @@ openstack:
   ca_cert: ./tls-ca-bundle.pem
   insecure: false
 
+openshift:
+  allow_write: false
+  insecure: false
+
 mcp_transport_security:
     token: supersecret
     enable_dns_rebinding_protection: false

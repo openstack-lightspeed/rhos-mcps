@@ -4,7 +4,6 @@
 
 ### Features
 
-- Add oc CLI tool
 - Add tools to get OpenStack configuration
 - Update to latest MCP version
 

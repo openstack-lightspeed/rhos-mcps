@@ -11,6 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
 from rhos_ls_mcps import auth as auth_module
+from rhos_ls_mcps import oc
 from rhos_ls_mcps import osc
 from rhos_ls_mcps import settings
 from rhos_ls_mcps import logging as mcp_logging
@@ -40,6 +41,7 @@ def initialize(config: settings.Settings) -> FastMCP:
     )
 
     osc.initialize(mcp)
+    oc.initialize(mcp)
 
     return mcp
 
