@@ -1,18 +1,32 @@
-# NOTE: UBI9 does not yet provide a Python 3.13 image (only up to 3.12).
-# Since pyproject.toml requires python >= 3.13, we use the official Python
-# slim image. Switch to a UBI-based image when one becomes available.
-FROM python:3.13-slim
+FROM registry.access.redhat.com/ubi9/python-312:latest
+
+LABEL com.redhat.component="rhos-ls-mcps" \
+      name="openstack-lightspeed/rhos-mcps" \
+      summary="MCP server providing OpenStack on OpenShift tools for RHOS-Lightspeed" \
+      io.k8s.name="rhos-mcps" \
+      io.k8s.description="MCP Tools for RHOS-Lightspeed" \
+      io.openshift.tags="openstack,lightspeed,mcp" \
+      org.label-schema.vcs-url="https://github.com/openstack-lightspeed/rhos-mcps"
 
 WORKDIR /app
 
+# Install pdm for dependency management
+RUN pip install --no-cache-dir pdm
+
 # Copy dependency and build files first for better layer caching
-COPY pyproject.toml README.md ./
+COPY pyproject.toml pdm.lock README.md ./
 
 # Copy the source code
 COPY src/ src/
 
-# Install the project and its dependencies
-RUN pip install --no-cache-dir .
+# Install the project and its dependencies using pdm (respects the lockfile)
+RUN pdm install --prod --no-editable --frozen-lockfile
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+EXPOSE 8080
+
+USER 1001
 
 # Use the console_scripts entry point defined in pyproject.toml
 ENTRYPOINT ["rhos-ls-mcps"]

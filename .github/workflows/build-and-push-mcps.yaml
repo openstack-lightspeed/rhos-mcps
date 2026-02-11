@@ -24,23 +24,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Prepare variables
-        id: vars
+      - name: Set TAGS for push builds
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
-          SHA=${{ github.sha }}
-          VERSION="0.1.0-${SHA::7}"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${{ env.IMAGE_NAME }}:v${VERSION}" >> $GITHUB_ENV
-          echo "IMAGE_TAG_LATEST=${{ env.IMAGE_NAME }}:latest" >> $GITHUB_ENV
+          echo "TAGS=${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Build image
         id: build_image
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ github.event.repository.name }}
-          tags: v${{ env.VERSION }} latest
+          tags: ${{ env.TAGS || 'pr-check' }}
           oci: true
           context: .
           containerfiles: |
