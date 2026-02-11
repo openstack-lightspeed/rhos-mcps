@@ -21,7 +21,6 @@
 """
 
 import asyncio
-from dataclasses import dataclass
 from importlib.metadata import entry_points, EntryPoint
 import io
 import json
@@ -37,7 +36,7 @@ import openstackclient.shell as osc_shell
 from rhos_ls_mcps import mcp_base
 from rhos_ls_mcps import settings
 from rhos_ls_mcps.logging import tool_logger
-from rhos_ls_mcps.utils import EXECUTOR
+from rhos_ls_mcps import utils
 
 
 ACCEPT_COMMANDS: set[str] = {
@@ -374,7 +373,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         try:
             await self._initialize_api_versions(mcp_argv)
             # Run in a separate process to allow concurrency
-            return await EXECUTOR.run_function(run_shell_cmd, mcp_argv + user_argv)
+            return await utils.EXECUTOR.run_function(run_shell_cmd, mcp_argv + user_argv)
         except SystemExit as e:
             raise ToolError(f"OpenStack failed {e.code}: {self.stdout.getvalue() or self.stderr.getvalue()}")
 
