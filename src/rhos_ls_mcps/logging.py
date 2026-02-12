@@ -45,7 +45,7 @@ def init_logging(config) -> None:
 def tool_logger(func: Callable[..., Any]) -> Callable[..., Any]:
     """Logger for MCP tools."""
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         # ctx.request_id is always 2, so it's useless
         request_id = str(uuid4())
         if "ctx" in kwargs:
@@ -56,7 +56,7 @@ def tool_logger(func: Callable[..., Any]) -> Callable[..., Any]:
 
         logger.debug(f"Running {func.__name__} with args: {args} and kwargs: {kwargs}")
         try:
-            result = func(*args, **kwargs)
+            result = await func(*args, **kwargs)
             logger.debug(f"Result: {result}")
         except Exception as exc:
             # Show full traceback
