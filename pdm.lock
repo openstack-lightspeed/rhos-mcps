@@ -5,10 +5,10 @@
 groups = ["default"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:135c630e6ae23c12fef9a25fa9dd65cb1b91c9a81a0b14ddd9cfea5ef69124f6"
+content_hash = "sha256:ce602507aa105a74379492ecb9187ee05d7b4b92af514435cbe0a2a6b47a8b96"
 
 [[metadata.targets]]
-requires_python = "==3.12"
+requires_python = ">=3.12,<3.13"
 
 [[package]]
 name = "annotated-types"
@@ -179,7 +179,7 @@ files = [
 
 [[package]]
 name = "cliff"
-version = "4.13.1"
+version = "4.13.2"
 requires_python = ">=3.10"
 summary = "Command Line Interface Formulation Framework"
 groups = ["default"]
@@ -191,8 +191,8 @@ dependencies = [
     "stevedore>=5.6.0",
 ]
 files = [
-    {file = "cliff-4.13.1-py3-none-any.whl", hash = "sha256:efdd2c18a4626467600fa3871f19ab4c04e847930d11e6a08aeab5c361aba754"},
-    {file = "cliff-4.13.1.tar.gz", hash = "sha256:b79cc0b2c19f6c6e78c82bd923e06785035d77cb0d2a1a483229f0a2836f0ca7"},
+    {file = "cliff-4.13.2-py3-none-any.whl", hash = "sha256:adb12978c79260fdd71cda9a1620caffc91b027606a65679c9d88c526a80de23"},
+    {file = "cliff-4.13.2.tar.gz", hash = "sha256:e949b585b9b64549de87388cefd49e87dd63095ce2b9f3b98f9123d7cd94be1a"},
 ]
 
 [[package]]
@@ -739,7 +739,7 @@ files = [
 
 [[package]]
 name = "openstacksdk"
-version = "4.9.0"
+version = "4.10.0"
 requires_python = ">=3.10"
 summary = "An SDK for building applications to work with OpenStack"
 groups = ["default"]
@@ -760,8 +760,8 @@ dependencies = [
     "typing-extensions>=4.12.0",
 ]
 files = [
-    {file = "openstacksdk-4.9.0-py3-none-any.whl", hash = "sha256:dddc786237af443af53921ed6ce7ed8cb96a34447d3c2f39942a296a8e4711f7"},
-    {file = "openstacksdk-4.9.0.tar.gz", hash = "sha256:b28459c7cb6405f9d6fc573689ea5c5e357424828f6c76f7b2b0d763c80fb6ea"},
+    {file = "openstacksdk-4.10.0-py3-none-any.whl", hash = "sha256:c75927fb29a9c82d8dd116f16c72093a623d507f9a4aca63f3c26ad8ddf99855"},
+    {file = "openstacksdk-4.10.0.tar.gz", hash = "sha256:5dde9ae3f1e2411a87ff57b2d78da53fac8eae9e5bac8e5870927cb62ddfc033"},
 ]
 
 [[package]]
@@ -781,7 +781,7 @@ files = [
 
 [[package]]
 name = "osc-lib"
-version = "4.3.0"
+version = "4.4.0"
 requires_python = ">=3.10"
 summary = "OpenStackClient Library"
 groups = ["default"]
@@ -796,8 +796,8 @@ dependencies = [
     "stevedore>=1.20.0",
 ]
 files = [
-    {file = "osc_lib-4.3.0-py3-none-any.whl", hash = "sha256:18c6941415df37df64f08ce5b7f648b8a1e2a737e5643dac36c781aca8ba21c6"},
-    {file = "osc_lib-4.3.0.tar.gz", hash = "sha256:4f7f682c0e7df187aecba5bbbb5ee64796a2da03d23cba981245bdc27f6f8b97"},
+    {file = "osc_lib-4.4.0-py3-none-any.whl", hash = "sha256:f9a15389d93ac8e9f2bb22bc2bf974a971ea67376470058b48a1403224ecd39b"},
+    {file = "osc_lib-4.4.0.tar.gz", hash = "sha256:6a615d744f03fba513d92eb4760a9cd5baa96e3d8530611fe53b217062bf317e"},
 ]
 
 [[package]]
@@ -821,7 +821,7 @@ files = [
 
 [[package]]
 name = "oslo-config"
-version = "10.2.0"
+version = "10.3.0"
 requires_python = ">=3.10"
 summary = "Oslo Configuration API"
 groups = ["default"]
@@ -834,13 +834,13 @@ dependencies = [
     "stevedore>=5.6.0",
 ]
 files = [
-    {file = "oslo_config-10.2.0-py3-none-any.whl", hash = "sha256:6298bb78d87d97cb5032b116941dc8305a792d5467e2e031c8ff7fadcaa7e211"},
-    {file = "oslo_config-10.2.0.tar.gz", hash = "sha256:6d282113f2fb2ee4d40c8becdb4ac39917c3f447c3bb355abf47f0d6181edffc"},
+    {file = "oslo_config-10.3.0-py3-none-any.whl", hash = "sha256:b17d983bd1845087d282f19d583cae0da5bfe725dc6884c9a7d50454839640c9"},
+    {file = "oslo_config-10.3.0.tar.gz", hash = "sha256:c405a40a8b05aa97bb5c24bb0b849981a7a5b7d56304df40632722312c58eaca"},
 ]
 
 [[package]]
 name = "oslo-context"
-version = "6.2.0"
+version = "6.3.0"
 requires_python = ">=3.10"
 summary = "Oslo Context library"
 groups = ["default"]
@@ -849,13 +849,13 @@ dependencies = [
     "typing-extensions>=4.12.0",
 ]
 files = [
-    {file = "oslo_context-6.2.0-py3-none-any.whl", hash = "sha256:6ea0b5d04c3577090d6513ce4533a74cdcee958e34a6fc54d820267b799f9d29"},
-    {file = "oslo_context-6.2.0.tar.gz", hash = "sha256:465c67da4d92dc2960deec148dee469d7ae7736af869581e2e3b73ce2cfa27a8"},
+    {file = "oslo_context-6.3.0-py3-none-any.whl", hash = "sha256:c3a47bd597d497aa1bab5a8c8c0cb654d0a7a7d9aa805bb11e5ca22b4cc3622d"},
+    {file = "oslo_context-6.3.0.tar.gz", hash = "sha256:e504f8df02c5cce7fc984f867fbdfaaa1d4d4b9b88978e291f6e5cb89df5a3e0"},
 ]
 
 [[package]]
 name = "oslo-i18n"
-version = "6.7.1"
+version = "6.7.2"
 requires_python = ">=3.10"
 summary = "Oslo i18n library"
 groups = ["default"]
@@ -863,13 +863,13 @@ dependencies = [
     "pbr>=2.0.0",
 ]
 files = [
-    {file = "oslo_i18n-6.7.1-py3-none-any.whl", hash = "sha256:36f5f88e05415f6bef28c3d7ee0eca634a6b3ada2d38df2c0f8d675dc1bfd5aa"},
-    {file = "oslo_i18n-6.7.1.tar.gz", hash = "sha256:7dc879089056fe287a6fb46fa2e73ad88f8d4b989bd63f00486f494435b24ced"},
+    {file = "oslo_i18n-6.7.2-py3-none-any.whl", hash = "sha256:5505cfc03a917b448bfaaf6f1221a1c36efbcc1a5b8c29407824bf5b056c5e0e"},
+    {file = "oslo_i18n-6.7.2.tar.gz", hash = "sha256:b1241ad3eee216e9dc9acb4336fce0bd79c4c286751ee70dfa42ff2f9763d34f"},
 ]
 
 [[package]]
 name = "oslo-log"
-version = "8.0.0"
+version = "8.1.0"
 requires_python = ">=3.10"
 summary = "oslo.log library"
 groups = ["default"]
@@ -884,24 +884,23 @@ dependencies = [
     "python-dateutil>=2.7.0",
 ]
 files = [
-    {file = "oslo_log-8.0.0-py3-none-any.whl", hash = "sha256:b8e3b6974a37a807dbe17c44a02cf67c80e12cbbeff14e2b6c44f9170ce795e1"},
-    {file = "oslo_log-8.0.0.tar.gz", hash = "sha256:d3e0c67a509fca99e9b76eaedcb2fa8c5a1140659de8a50d5a4df6a3fa933227"},
+    {file = "oslo_log-8.1.0-py3-none-any.whl", hash = "sha256:e71d62a735b53527365ba5b917de6fbf2938069db5a17c00007adbe96635f8d4"},
+    {file = "oslo_log-8.1.0.tar.gz", hash = "sha256:4b7a2c869474a1d57f84ea5a4d03d8578b04a8023c0fa5511663e77a936a0f7b"},
 ]
 
 [[package]]
 name = "oslo-serialization"
-version = "5.9.0"
+version = "5.9.1"
 requires_python = ">=3.10"
 summary = "Oslo Serialization library"
 groups = ["default"]
 dependencies = [
     "msgpack>=0.5.2",
     "oslo-utils>=3.33.0",
-    "tzdata>=2022.4",
 ]
 files = [
-    {file = "oslo_serialization-5.9.0-py3-none-any.whl", hash = "sha256:a94ca819f4ed5bb23bc2698e9be21aaa62c8d411dbb6ff9655e19c4b60ea8e59"},
-    {file = "oslo_serialization-5.9.0.tar.gz", hash = "sha256:5dd15a7f2ffaed25e8d3c295ee305d3b864b04e4ae3d705ad9e628d5ab8a82f8"},
+    {file = "oslo_serialization-5.9.1-py3-none-any.whl", hash = "sha256:7326426cff711fbf0565d369c8f7ccb33126ee2dc96fd89334ce584d790e49de"},
+    {file = "oslo_serialization-5.9.1.tar.gz", hash = "sha256:086ab78a15f33f02e647bdb3ca36632480d94cf661cf1fb118adebdeee5d4be7"},
 ]
 
 [[package]]
@@ -975,13 +974,13 @@ files = [
 
 [[package]]
 name = "platformdirs"
-version = "4.5.1"
+version = "4.9.2"
 requires_python = ">=3.10"
 summary = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
 groups = ["default"]
 files = [
-    {file = "platformdirs-4.5.1-py3-none-any.whl", hash = "sha256:d03afa3963c806a9bed9d5125c8f4cb2fdaf74a55ab60e5d59b3fde758104d31"},
-    {file = "platformdirs-4.5.1.tar.gz", hash = "sha256:61d5cdcc6065745cdd94f0f878977f8de9437be93de97c1c12f853c9c0cdcbda"},
+    {file = "platformdirs-4.9.2-py3-none-any.whl", hash = "sha256:9170634f126f8efdae22fb58ae8a0eaa86f38365bc57897a6c4f781d1f5875bd"},
+    {file = "platformdirs-4.9.2.tar.gz", hash = "sha256:9a33809944b9db043ad67ca0db94b14bf452cc6aeaac46a88ea55b26e2e9d291"},
 ]
 
 [[package]]
@@ -1071,7 +1070,7 @@ files = [
 
 [[package]]
 name = "pydantic-settings"
-version = "2.12.0"
+version = "2.13.0"
 requires_python = ">=3.10"
 summary = "Settings management using Pydantic"
 groups = ["default"]
@@ -1081,8 +1080,8 @@ dependencies = [
     "typing-inspection>=0.4.0",
 ]
 files = [
-    {file = "pydantic_settings-2.12.0-py3-none-any.whl", hash = "sha256:fddb9fd99a5b18da837b29710391e945b1e30c135477f484084ee513adb93809"},
-    {file = "pydantic_settings-2.12.0.tar.gz", hash = "sha256:005538ef951e3c2a68e1c08b292b5f2e71490def8589d4221b95dab00dafcfd0"},
+    {file = "pydantic_settings-2.13.0-py3-none-any.whl", hash = "sha256:d67b576fff39cd086b595441bf9c75d4193ca9c0ed643b90360694d0f1240246"},
+    {file = "pydantic_settings-2.13.0.tar.gz", hash = "sha256:95d875514610e8595672800a5c40b073e99e4aae467fa7c8f9c263061ea2e1fe"},
 ]
 
 [[package]]
@@ -1518,7 +1517,7 @@ files = [
 
 [[package]]
 name = "python-openstackclient"
-version = "8.3.0"
+version = "9.0.0"
 requires_python = ">=3.10"
 summary = "OpenStack Command-line Client"
 groups = ["default"]
@@ -1536,8 +1535,8 @@ dependencies = [
     "stevedore>=2.0.1",
 ]
 files = [
-    {file = "python_openstackclient-8.3.0-py3-none-any.whl", hash = "sha256:4fb4cb4bf1259fc1682016c2bb910451aabcb77ec119142ec2ae06a2257867e6"},
-    {file = "python_openstackclient-8.3.0.tar.gz", hash = "sha256:cc7b32e45f0b8eed9215e0218aea02526619a5e7b0682b2781769134afd76ff8"},
+    {file = "python_openstackclient-9.0.0-py3-none-any.whl", hash = "sha256:a22e27fcd8e375accb00ce3627183465f4ac171a721ea8a822ee0954978a3c7f"},
+    {file = "python_openstackclient-9.0.0.tar.gz", hash = "sha256:8cdca0a274ef5e423f31a07c7117432e4ce5b72d95e3eba5b06e1c831eb3018e"},
 ]
 
 [[package]]
@@ -2036,7 +2035,7 @@ files = [
 
 [[package]]
 name = "uvicorn"
-version = "0.40.0"
+version = "0.41.0"
 requires_python = ">=3.10"
 summary = "The lightning-fast ASGI server."
 groups = ["default"]
@@ -2047,8 +2046,8 @@ dependencies = [
     "typing-extensions>=4.0; python_version < \"3.11\"",
 ]
 files = [
-    {file = "uvicorn-0.40.0-py3-none-any.whl", hash = "sha256:c6c8f55bc8bf13eb6fa9ff87ad62308bbbc33d0b67f84293151efe87e0d5f2ee"},
-    {file = "uvicorn-0.40.0.tar.gz", hash = "sha256:839676675e87e73694518b5574fd0f24c9d97b46bea16df7b8c05ea1a51071ea"},
+    {file = "uvicorn-0.41.0-py3-none-any.whl", hash = "sha256:29e35b1d2c36a04b9e180d4007ede3bcb32a85fbdfd6c6aeb3f26839de088187"},
+    {file = "uvicorn-0.41.0.tar.gz", hash = "sha256:09d11cf7008da33113824ee5a1c6422d89fbc2ff476540d69a34c87fab8b571a"},
 ]
 
 [[package]]
