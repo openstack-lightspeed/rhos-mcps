@@ -1,0 +1,30 @@
+# Git and IDE
+.git
+.gitignore
+.cursor
+.idea
+.vscode
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.venv
+venv
+.pdm-python
+.pdm-build
+
+# Tests and dev
+tests
+
+# Local and CI
+*.saved
+.env
+.env.*
+config.yaml
+scripts/
+
+# Docs and misc
+docs/
+*.rst
