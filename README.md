@@ -11,10 +11,13 @@ The container image is available at `quay.io/openstack-lightspeed/rhos-mcps`.
 podman run -p 8080:8080 quay.io/openstack-lightspeed/rhos-mcps:latest
 ```
 
-The MCP server will start on port 8080. Connect to it using the Streamable HTTP endpoint:
+The MCP server will start on port 8080. Connect to it using the Streamable HTTP endpoints:
 ```
-http://localhost:8080/mcp
+http://localhost:8080/openstack/
+http://localhost:8080/openshift/
 ```
+
+They are separated because they require different credentials
 
 ### Running with a custom configuration
 
@@ -27,7 +30,7 @@ podman run -p 8901:8901 \
 
 Adjust the port mapping to match the `port` value in your config file. If authentication is enabled in your config, include the token:
 ```bash
-curl -X POST http://127.0.0.1:8901/mcp \
+curl -X POST http://127.0.0.1:8901/openstack/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer supersecret" \
@@ -41,7 +44,7 @@ Adjust the port mapping to match the `port` value in your config file.
 If we are using CRC and we have done a deployment we can just get the
 credentials and certs for openshift and openstack inside the container by:
 
-Getting the openstack credenctials:
+Getting the openstack credentials:
 
 ```bash
 scripts/get-crc-creds.sh
