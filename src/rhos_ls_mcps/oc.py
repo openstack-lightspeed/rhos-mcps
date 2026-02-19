@@ -30,12 +30,12 @@ REJECT_GLOBAL_ARGS: list[str] = [
 ##########
 # METHODS AND CLASSES CALLED FROM main.py
 
-def initialize(mcp: FastMCP):
+def initialize(mcp_osp: FastMCP, mcp_ocp: FastMCP):
     global OC_PARAMS, MAX_ALLOW_COMMAND_WORDS, MAX_BLOCK_COMMAND_WORDS
 
-    mcp.add_tool(openshift_cli_mcp_tool,
-                name="openshift-cli",
-                title="OpenShift Client MCP Tool")
+    mcp_ocp.add_tool(openshift_cli_mcp_tool,
+                     name="openshift-cli",
+                     title="OpenShift Client MCP Tool")
 
     if settings.CONFIG.openshift.insecure:
         OC_PARAMS.append("--insecure-skip-tls-verify=true")

@@ -90,12 +90,12 @@ OSC_PARAMS: list[str] = []
 ##########
 # METHODS AND CLASSES CALLED FROM main.py
 
-def initialize(mcp: FastMCP):
+def initialize(mcp_osp: FastMCP, mcp_ocp: FastMCP):
     global ALLOWED_COMMANDS, OSC_PARAMS
 
-    mcp.add_tool(openstack_cli_mcp_tool,
-                name="openstack-cli",
-                title="OpenStack Client MCP Tool")
+    mcp_osp.add_tool(openstack_cli_mcp_tool,
+                     name="openstack-cli",
+                     title="OpenStack Client MCP Tool")
 
     if settings.CONFIG.openstack.ca_cert:
         OSC_PARAMS.extend(["--os-cacert", settings.CONFIG.openstack.ca_cert])
