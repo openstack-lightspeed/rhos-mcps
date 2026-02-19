@@ -42,23 +42,45 @@ logger = logging.getLogger(__name__)
 
 
 ACCEPT_COMMANDS: set[str] = {
-        # These are just verbs
-        "get", "show", "list", "history", "alarm-history show", "alarm-history search",
-        "capabilities list", "alarm show", "alarm quota show", "alarm state get",
-        "search", "benchmark metric show", "alarming capabilities list", "simulate",
-        "info", "collect", "benchmark measures show", "validate", "ping", "top",
-        "stats", "alarm list", "contains", "homedoc", "query", "measures aggregation",
-        "tail", "versions", "count",
+    # These are just verbs
+    "get", "show", "list", "history", "alarm-history show", "alarm-history search",
+    "capabilities list", "alarm show", "alarm quota show", "alarm state get",
+    "search", "benchmark metric show", "alarming capabilities list", "simulate",
+    "info", "collect", "benchmark measures show", "validate", "ping", "top",
+    "stats", "alarm list", "contains", "homedoc", "query", "measures aggregation",
+    "tail", "versions", "count",
 
-        # These are full names
-        "stack_resource_metadata", "database_configuration_default", "metric_aggregates",
-        "optimize_strategy_state", "rca_status", "volume_summary", "stack_hook_poll",
-        "database_configuration_instances",  "alarm metrics", "stack_check",
-        "cluster_check", "baremetal_introspection_status", "rca_healthcheck",
-        "appcontainer_logs", "appcontainer_quota_default", "metric_status",
-        "metric_server_version", "messaging_health", "database_cluster_modules",
-        "class-schema",
+    # These are full names
+    "stack_resource_metadata", "database_configuration_default", "metric_aggregates",
+    "optimize_strategy_state", "rca_status", "volume_summary", "stack_hook_poll",
+    "database_configuration_instances",  "alarm metrics", "stack_check",
+    "cluster_check", "baremetal_introspection_status", "rca_healthcheck",
+    "appcontainer_logs", "appcontainer_quota_default", "metric_status",
+    "metric_server_version", "messaging_health", "database_cluster_modules",
+    "class-schema",
 }
+
+# These are global arguments that the user nor us can pass, so we remove them.
+DELETE_GLOBAL_ARGS: list[str] = [
+    "--os-cloud", "--os-cert", "--os-key", "--verify", "--os-interface", "--os-profile",
+    "--murano-url", "--glare-url", "--inspector-url", "--os-data-processing-url",
+    "--os-username", "--os-password", "--os-endpoint", "--os-trust-id",
+    "--os-identity-provider", "--os-client-secret", "--os-openid-scope",
+    "--os-access-token-endpoint", "--os-discovery-endpoint", "--os-access-token-type",
+    "--os-redirect-uri", "--os-aodh-endpoint", "--os-application-credential-secret",
+    "--os-application-credential-id", "--os-application-credential-name",
+    "--os-code-challenge-method", "--os-access-token", "--os-consumer-key",
+    "--os-consumer-secret", "--os-idp-otp-key", "--os-realm-name", "--os-openid-client-id",
+    "--os-auth-type", "--os-oauth2-endpoint", "--os-oauth2-client-id",
+    "--os-oauth2-client-secret", "--os-device-authorization-endpoint",
+    "--os-auth-methods", "--os-user", "--os-passcode",
+]
+
+# These are global arguments that the user cannot pass but that we cannot remove because
+# we use them in the code.
+REJECT_GLOBAL_ARGS: list[str] = [
+    "--os-auth-url",  "--os-token", "--insecure", "--os-cacert",
+]
 
 SHELL = None
 ALLOWED_COMMANDS: list[str] = []
@@ -167,7 +189,7 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
     Also ensures that plugins and commands are loaded only once.
     """
     # Class variables shared by all instances
-    versions_initialized: bool = False
+    initialized: bool = False
     # TODO: Figure out why we need to reload everytime otherwise the commands dissapear and we fail
     loaded_plugins: bool = False
     loaded_commands: bool = False
@@ -271,6 +293,36 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         self.stderr.seek(0)
         self.stderr.truncate(0)
 
+    async def _initialize_parser(self, mcp_argv: list[str], user_argv: list[str]) -> None:
+        if self.initialized:
+            return
+
+        await self.lock.acquire()
+        try:
+            await self._initialize_api_versions(mcp_argv)
+            await self._initialize_global_args(user_argv)
+            MyOpenStackShell.initialized = True
+        finally:
+            self.lock.release()
+
+    @staticmethod
+    def _fail_on_argument(value: str) -> None:
+        raise ToolError(f"A forbidden global argument was provided with value: {value}")
+
+    async def _initialize_global_args(self, user_argv: list[str]) -> None:
+        self.parser.register("type", "fail", self._fail_on_argument)
+
+        delete_global_args = DELETE_GLOBAL_ARGS.copy()
+
+        for arg in self.parser._actions:
+            for option in arg.option_strings:
+                if option in delete_global_args:
+                    arg.type = "fail"
+                    delete_global_args.remove(option)
+
+        if delete_global_args:
+            logger.warning(f"The following global arguments were not removed: {delete_global_args}")
+
     async def _initialize_api_versions(self, mcp_argv: list[str]) -> None:
         """Initialize the api_version dictionary with the latest API version for each service.
 
@@ -279,39 +331,38 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
         Args:
             mcp_argv: Argumments for credentials and certificates.
         """
-        await self.lock.acquire()
-        try:
-            if self.versions_initialized:
-                return
+        versions_varg = ["versions", "show", "--format", "json"]
+        # Run in this process to later on share the loaded plugins and commands with command runs
+        response, stdout, stderr = self._do_run(mcp_argv + versions_varg)
+        if response:
+            raise ToolError(f"Failed to get API versions ({response}):\n{stdout}\n{stderr}")
+        # For some reason stdout has 0x00 characters at the start, clean it
+        api_versions = json.loads(_clean_response(stdout))
 
-            versions_varg = ["versions", "show", "--format", "json"]
-            # Run in this process to later on share the loaded plugins and commands with command runs
-            response, stdout, stderr = self._do_run(mcp_argv + versions_varg)
-            if response:
-                raise ToolError(f"Failed to get API versions ({response}):\n{stdout}\n{stderr}")
-            # For some reason stdout has 0x00 characters at the start, clean it
-            api_versions = json.loads(_clean_response(stdout))
+        version_defaults = {}
 
-            version_defaults = {}
+        for version_info in api_versions:
+            # We only care about the latest API version
+            if version_info["Status"] == "CURRENT":
+                # Some services reportt microversions, others only report the version
+                arg_name = self._get_version_arg_name_from_service_type(version_info["Service Type"])
+                version = version_info["Max Microversion"] or version_info["Version"]
+                # Keystone is weird, it reports 3.14 but doesn't accept it :-(
+                if arg_name in ("os_identity_api_version", "os_key_manager_api_version"):
+                    version = version.split(".")[0]
+                version_defaults[arg_name] = version
 
-            for version_info in api_versions:
-                # We only care about the latest API version
-                if version_info["Status"] == "CURRENT":
-                    # Some services reportt microversions, others only report the version
-                    arg_name = self._get_version_arg_name_from_service_type(version_info["Service Type"])
-                    version = version_info["Max Microversion"] or version_info["Version"]
-                    # Keystone is weird, it reports 3.14 but doesn't accept it :-(
-                    if arg_name in ("os_identity_api_version", "os_key_manager_api_version"):
-                        version = version.split(".")[0]
-                    version_defaults[arg_name] = version
+        # Change the default values for the api versions in the parser, that way
+        # the user can override them if needed and we don't need to actually
+        # pass them all on the command line.
+        self.parser.set_defaults(**version_defaults)
 
-            # Change the default values for the api versions in the parser, that way
-            # the user can override them if needed and we don't need to actually
-            # pass them all on the command line.
-            self.parser.set_defaults(**version_defaults)
-            MyOpenStackShell.versions_initialized = True
-        finally:
-            self.lock.release()
+    def _validate_arguments(self, user_argv: list[str]) -> None:
+        # This is a very rudimentary implementation, since we could be getting false positives
+        for reject_arg in REJECT_GLOBAL_ARGS:
+            for user_arg in user_argv:
+                if user_arg.strip().startswith(reject_arg):
+                    raise ToolError(f"Global argument {user_arg} is not allowed")
 
     def _do_run(self, cmd: list[str]) -> tuple[int, str, str]:
         self._clean_stds()
@@ -337,7 +388,8 @@ class MyOpenStackShell(osc_shell.OpenStackShell):
             user_argv: Arguments for the OpenStack command.
         """
         try:
-            await self._initialize_api_versions(mcp_argv)
+            await self._initialize_parser(mcp_argv, user_argv)
+            self._validate_arguments(user_argv)
             # Run in a separate process to allow concurrency
             return await utils.EXECUTOR.run_function(run_shell_cmd, mcp_argv + user_argv)
         except SystemExit as e:
