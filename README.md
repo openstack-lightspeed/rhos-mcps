@@ -35,3 +35,28 @@ curl -X POST http://127.0.0.1:8901/mcp \
 ```
 
 Adjust the port mapping to match the `port` value in your config file.
+
+### Running with hardcoded credentials
+
+If we are using CRC and we have done a deployment we can just get the
+credentials and certs for openshift and openstack inside the container by:
+
+Getting the openstack credenctials:
+
+```bash
+scripts/get-crc-creds.sh
+```
+
+Now running the container with:
+
+```bash
+podman run -p 8901:8901 \
+  --user 1001 \
+  -v ./config.yaml.sample:/app/config.yaml:Z \
+  -v ./tls-ca-bundle.pem:/app/tls-ca-bundle.pem:Z \
+  -v ./clouds.yaml:/app/clouds.yaml:Z \
+  -v ./secure.yaml:/app/secure.yaml:Z \
+  -v ./tls-ca-bundle.pem:/app/tls-ca-bundle.pem:Z \
+  -v ~/.crc/machines/crc/kubeconfig:/opt/app-root/src/.kube/config:Z,U \
+  quay.io/openstack-lightspeed/rhos-mcps:latest
+```
