@@ -5,7 +5,7 @@ workers: 1
 processes_pool_size: 10
 # Use YAML's escape syntax \x1b instead of \033
 log_format: "%(asctime)s.%(msecs)03d %(process)d \x1b[32m%(levelname)s:\x1b[0m [%(request_id)s|%(client_id)s] %(name)s %(message)s"
-unicorn_log_format: "%(asctime)s.%(msecs)03d %(process)d \x1b[32m%(levelname)s:\x1b[0m [-|-] %(name)s %(message)s"
+uvicorn_log_format: "%(asctime)s.%(msecs)03d %(process)d \x1b[32m%(levelname)s:\x1b[0m [-|-] %(name)s %(message)s"
 
 openstack:
   allow_write: false
