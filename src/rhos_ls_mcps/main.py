@@ -93,8 +93,8 @@ def main():
     # Configure uvicorn logging
     uvicorn_log_level = "debug" if config.debug else "info"
     log_config = uvicorn.config.LOGGING_CONFIG
-    log_config["formatters"]["access"]["fmt"] = config.unicorn_log_format
-    log_config["formatters"]["default"]["fmt"] = config.unicorn_log_format
+    log_config["formatters"]["access"]["fmt"] = config.uvicorn_log_format
+    log_config["formatters"]["default"]["fmt"] = config.uvicorn_log_format
 
     # Pass string instead of an instance to support multiple workers.
     # Pass the factory=True argument to use a function (create_app) instead of a variable.
