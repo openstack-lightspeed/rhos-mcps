@@ -413,7 +413,7 @@ def get_osp_credentials_args(ctx: Context) -> list[str]:
     headers = ctx.request_context.request.headers
     logger.debug(f"Headers: {headers}")
 
-    token_header = headers.get('OS_TOKEN')
+    token_header = utils.strip_bearer_prefix(headers.get('OS_TOKEN', ''))
     url_header = headers.get('OS_URL')
     if token_header and url_header:
         logger.debug(f"Using token and URL from request headers for credentials: {url_header}")
