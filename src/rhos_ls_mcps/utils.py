@@ -53,3 +53,11 @@ def reject_arguments(user_argv: list[str], reject_args: list[str]) -> None:
         for user_arg in user_argv:
             if user_arg.strip().startswith(reject_arg):
                 raise ToolError(f"Global argument {user_arg} is not allowed")
+
+def strip_bearer_prefix(header: str) -> str:
+    """Auxiliary function that removes the 'Bearer' prefix from OAuth header"""
+    bearer, _, token = header.partition(' ')
+    if bearer.lower() != "bearer":
+        return header
+
+    return token

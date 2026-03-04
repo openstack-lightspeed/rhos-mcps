@@ -130,7 +130,7 @@ def get_ocp_credentials_args(ctx: Context) -> list[str]:
     """Get OpenShift credentials arguments."""
     headers = ctx.request_context.request.headers
     logger.debug(f"Headers: {headers}")
-    token_header = headers.get('OCP_TOKEN')
+    token_header = utils.strip_bearer_prefix(headers.get('OCP_TOKEN', ''))
     result = ["--token", token_header] if token_header else []
     url_header = headers.get('OCP_URL')
     if url_header:
