@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     workers: int = Field(default=1, description="Number of workers to use")
     processes_pool_size: int = Field(default=10, description="Process pool size for each worker")
     log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [%(request_id)s|%(client_id)s] %(name)s %(message)s", description="Log format")
-    unicorn_log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [-|-] %(name)s %(message)s", description="Unicorn log format")
+    uvicorn_log_format: str = Field(default="%(asctime)s.%(msecs)03d %(process)d \033[32m%(levelname)s:\033[0m [-|-] %(name)s %(message)s", description="Uvicorn log format")
     openstack: OpenStackSettings = Field(default=OpenStackSettings(), description="OpenStack settings")
     openshift: OpenShiftSettings = Field(default=OpenShiftSettings(), description="OpenShift settings")
     mcp_transport_security: TransportSecuritySettings = Field(default=TransportSecuritySettings(), description="Transport security settings")
