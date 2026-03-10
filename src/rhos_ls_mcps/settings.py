@@ -45,15 +45,15 @@ class Settings(BaseSettings):
 
 
 def load_config():
-    global CONFIG
     """Load the configuration from the file."""
+    global CONFIG
     config_file = os.environ.get("RHOS_MCPS_CONFIG") or "config.yaml"
     if not os.path.exists(config_file):
         logger.warning("Config file not found, using default values")
         config = {}
     else:
         try:
-            with open("config.yaml", "r") as f:
+            with open(config_file, "r") as f:
                 config = yaml.safe_load(f.read())
         except FileNotFoundError as error:
             message = "Error: yml config file not found."
