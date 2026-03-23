@@ -27,7 +27,7 @@ import json
 import logging
 import os
 import shlex
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError

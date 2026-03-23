@@ -1,5 +1,4 @@
 import logging
-from re import I
 import shlex
 
 from mcp.server.fastmcp import Context, FastMCP
