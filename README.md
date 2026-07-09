@@ -1,3 +1,5 @@
+> **This repository has been migrated to [openstack-k8s-operators/lightspeed-mcps](https://github.com/openstack-k8s-operators/lightspeed-mcps). Please open all new issues and pull requests there. This repository is archived and no longer maintained.**
+
 # OpenStack LightSpeed MCPs
 
 This repository contains MCP tools that have been developed expressly for the OpenStack Lightspeed agent to use on an OpenStack on OpenShift deployment, so they are opinionated and functionality is tailored to our needs.
